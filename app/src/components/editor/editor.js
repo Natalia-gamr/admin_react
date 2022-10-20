@@ -23,33 +23,86 @@ export default class Editor extends Component {
         this.loadPageList();
     }
 
+
     open(page) {
-        this.currentPage = `../${page}`;
-        this.iframe.load(this.currentPage, () => {
-            const body = this.iframe.contentDocument.body;
-            let textNodes = [];
+        this.currentPage = page;
 
-            function recursy(element) {
-                element.childNodes.forEach(node => {
-                    
-                    if(node.nodeName === "#text" && node.nodeValue.replace(/\s+/g, "").length > 0) {
-                        textNodes.push(node);
-                    } else {
-                        recursy(node);
-                    }
-                })
-            };
+        axios
+            .get(`../${page}?rnd=${Math.random()}`)
+            .then(res => this.parseStrToDOM(res.data))
+            .then(this.wrapTextNodes)
+            .then(dom => {
+                this.virtualDom = dom;
+                return dom;
+            })
+            .then(this.serializeDOMToString)
+            .then(html => axios.post("./api/saveTempPage.php", {html}))
+            .then(() => this.iframe.load("../temp.html"))
+            .then(() => this.enableEditing())
+    }
 
-            recursy(body);
+    save() {
+        const newDom = this.virtualDom.cloneNode(this.virtualDom);
+        this.unwrapTextNodes(newDom);
+        const html = this.serializeDOMToString(newDom);
+        console.log(html)
+        axios   .post('./api/savePage.php', {pageName: this.currentPage, html})
+    }
 
-            textNodes.forEach(node => {
-                const wrapper = this.iframe.contentDocument.createElement('text-editor');
-                node.parentNode.replaceChild(wrapper, node);
-                wrapper.appendChild(node);
-                wrapper.contentEditable = "true";
-            });
-
+    enableEditing() {
+        this.iframe.contentDocument.body.querySelectorAll("text-editor").forEach(element => {
+            element.contentEditable = "true";
+            element.addEventListener("input", () => {
+                this.onTextEdit(element);
+            })
         });
+    }
+    onTextEdit(element) {
+        const id = element.getAttribute("nodeid");
+        this.virtualDom.body.querySelector(`[nodeid="${id}"]`).innerHTML = element.innerHTML;
+    }
+
+    parseStrToDOM(str) {
+        const parser = new DOMParser();
+        return parser.parseFromString(str, "text/html");
+    }
+
+    wrapTextNodes(dom) {
+        const body = dom.body;
+        let textNodes = [];
+
+        function recursy(element) {
+            element.childNodes.forEach(node => {
+                
+                if(node.nodeName === "#text" && node.nodeValue.replace(/\s+/g, "").length > 0) {
+                    textNodes.push(node);
+                } else {
+                    recursy(node);
+                }
+            })
+        };
+
+        recursy(body);
+
+        textNodes.forEach((node, i) => {
+            const wrapper = dom.createElement('text-editor');
+            node.parentNode.replaceChild(wrapper, node);
+            wrapper.appendChild(node);
+            wrapper.setAttribute("nodeid", i);
+        });
+
+        return dom;
+    }
+
+    serializeDOMToString(dom) {
+        const serializer = new XMLSerializer();
+        return serializer.serializeToString(dom);
+    }
+
+    unwrapTextNodes(dom) {
+        dom.body.querySelectorAll('text-editor').forEach(element => {
+            element.parentNode.replaceChild(element.firstChild, element)
+        })
     }
 
     loadPageList() {
@@ -85,7 +138,11 @@ export default class Editor extends Component {
         // });
 
         return (
-            <iframe src={this.currentPage} frameBorder="0"></iframe>
+            <>
+                <button onClick={() => this.save()}>Click</button>
+                <iframe src={this.currentPage} frameBorder="0"></iframe>
+
+            </>
             // <>
             //     <input
             //         onChange={(e) => {this.setState({newPageName: e.target.value})}} 
