@@ -2,12 +2,13 @@ import "../../helpers/iframeLoader.js";
 import axios from 'axios';
 import React, {Component} from 'react';
 import DOMHelper from "../../helpers/dom-helper.js";
-import EditorText from "./editor-text";
+import EditorText from "../editor-text";
 import UIkit from "uikit";
 import Spinner from "../spinner";
 import ConfirmModal from "../confirm-modal";
 import ChooseModal from "../choose-modal";
-import Panel from "../panel/panel.js";
+import Panel from "../panel";
+import EditorMeta from "../editor-meta";
 
 export default class Editor extends Component {
     constructor() {
@@ -165,6 +166,9 @@ export default class Editor extends Component {
                 <ConfirmModal target={'modal-save'} method={this.save}/>
                 <ChooseModal target={'modal-open'} data={pageList} redirect={this.init}/>
                 <ChooseModal target={'modal-backup'} data={backupsList} redirect={this.restoreBackup}/>
+                <EditorMeta target={'modal-meta'} virtualDom={this.virtualDom}/> 
+                {/* {this.virtualDom ? <EditorMeta target={'modal-meta'} virtualDom={this.virtualDom}/> : false} */}
+
             </>
 
         )
