@@ -15,6 +15,12 @@ export default class EditorMeta extends Component{
     // componentDidMount() {
     //     this.getMeta(this.props.virtualDom)
     // }
+
+    // componentDidUpdate(prevProps) {
+    //     if (this.props.virtualDom !== prevProps.virtualDom) {
+    //         this.getMeta(this.props.virtualDom)
+    //     }
+    // }
     
     // getMeta(virtualDom) {
 
@@ -24,12 +30,14 @@ export default class EditorMeta extends Component{
     //     if (!this.keywords) { 
     //         this.keywords = virtualDom.head.appendChild(virtualDom.createElement('meta'))
     //         this.keywords.setAttribute('name', 'keywords')
+    //         this.keywords.setAttribute('content', '')
     //     }
         
     //      this.description = virtualDom.head.querySelector('meta[name="description"]')
     //     if (!this.description) { 
     //         this.description = virtualDom.head.appendChild(virtualDom.createElement('meta'))
     //         this.description.setAttribute('name', 'description')
+    //         this.description.setAttribute('content', '')
     //     }
 
     //     this.setState({
