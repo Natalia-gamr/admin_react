@@ -1,15 +1,16 @@
 import React from "react";
 
-const ConfirmModal = ({ target, method}) => {
+const ConfirmModal = ({ target, method, text}) => {
+    const{title, descr, btn} = text;
     return (
         <div id={target} uk-modal='true' container="false" >
             <div className="uk-modal-dialog uk-modal-body">
-                <h2 className="uk-modal-title">Сохранение</h2>
-                <p>Вы действительно хотите сохранить изменения?</p>
+                <h2 className="uk-modal-title">{title}</h2>
+                <p>{descr}</p>
                 <p className="uk-text-right">
                     <button className="uk-button uk-button-default uk-modal-close uk-margin-small-right" type="button">Отменить</button>
                     <button className="uk-button uk-button-primary  uk-modal-close" type="button" 
-                    onClick={() => method()}>Сохранить</button>
+                    onClick={() => method()}>{btn}</button>
                 </p>
             </div>
         </div>

@@ -10,6 +10,7 @@ import ChooseModal from "../choose-modal";
 import Panel from "../panel";
 import EditorMeta from "../editor-meta";
 import EditorImages from "../editor-images";
+import Login from "../login";
 
 export default class Editor extends Component {
     constructor() {
@@ -19,17 +20,65 @@ export default class Editor extends Component {
             pageList: [],
             backupsList: [],
             newPageName: "",
-            loading: true
+            loading: true,
+            auth: false,
+            loginError: false,
+            loginLengthError: false
         }
         this.isLoading = this.isLoading.bind(this);
         this.isLoaded = this.isLoaded.bind(this);
         this.save = this.save.bind(this);
         this.init = this.init.bind(this);
+        this.login = this.login.bind(this);
+        this.logout = this.logout.bind(this);
         this.restoreBackup = this.restoreBackup.bind(this);
     }
 
     componentDidMount() {
-        this.init(null, this.currentPage);
+        this.checkAuth();
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        if (this.state.auth !== prevState.auth) {
+            this.init(null, this.currentPage);
+        }
+    }
+
+    checkAuth() {
+        axios   
+            .get('./api/checkAuth.php')
+            .then(res => {
+                this.setState({
+                    auth: res.data.auth
+                })
+            })
+    }
+
+    login(pass) {        
+        if(pass.length > 5) {
+            axios   
+                .post('./api/login.php', {'password': pass})
+                .then(res => {
+                    this.setState ({
+                        auth: res.data.auth,
+                        loginError: !res.data.auth,
+                        loginLengthError: false
+                    })
+                })
+        } else {
+            this.setState ({
+                loginError: false,
+                loginLengthError: true
+            })
+        }
+    }
+
+    logout() {
+        axios   
+            .get('./api/logout.php')
+            .then(() => {
+                window.location.replace('/');                
+            })
     }
 
     init(e, page) {
@@ -37,14 +86,14 @@ export default class Editor extends Component {
             e.preventDefault();
         }
 
-        this.isLoading();
-
-        this.iframe = document.querySelector('iframe');
-        this.open(page, this.isLoaded);
-        this.loadPageList();
-        this.loadBackupList()
+        if (this.state.auth) {
+            this.isLoading();
+            this.iframe = document.querySelector('iframe');
+            this.open(page, this.isLoaded);
+            this.loadPageList();
+            this.loadBackupList()
+        }        
     }
-
 
     open(page, cb) {
         this.currentPage = page;
@@ -70,7 +119,7 @@ export default class Editor extends Component {
 
     }
 
-    async save(onSuccess, onError) {
+    async save() {
         this.isLoading();
         const newDom = this.virtualDom.cloneNode(this.virtualDom);
         DOMHelper.unwrapTextNodes(newDom);
@@ -171,10 +220,14 @@ export default class Editor extends Component {
     }
 
     render() {
-        const {loading, pageList, backupsList} = this.state;
+        const {loading, pageList, backupsList, auth, loginError, loginLengthError} = this.state;
         let spinner;
 
         loading ? spinner = <Spinner active/> : spinner = <Spinner/> 
+
+        if(!auth) {
+            return <Login login={this.login} lengthErr={loginLengthError} logErr={loginError}/>
+        }
 
         return (
             <>
@@ -185,10 +238,33 @@ export default class Editor extends Component {
 
                 <Panel/>
                                
-                <ConfirmModal target={'modal-save'} method={this.save}/>
-                <ChooseModal target={'modal-open'} data={pageList} redirect={this.init}/>
-                <ChooseModal target={'modal-backup'} data={backupsList} redirect={this.restoreBackup}/>
-                <EditorMeta target={'modal-meta'} virtualDom={this.virtualDom}/> 
+                <ConfirmModal 
+                    target={'modal-save'} 
+                    method={this.save}
+                    text={{
+                        title: 'Сохранение',
+                        descr: 'Вы действительно хотите сохранить изменения?',
+                        btn: 'Сохранить'
+                    }}/>
+                <ConfirmModal 
+                    target={'modal-logout'} 
+                    method={this.logout}
+                    text={{
+                        title: 'Выход',
+                        descr: 'Вы действительно хотите выйти из учетной записи?',
+                        btn: 'Выйти'
+                    }}/>
+                <ChooseModal 
+                    target={'modal-open'} 
+                    data={pageList} 
+                    redirect={this.init}/>
+                <ChooseModal 
+                    target={'modal-backup'} 
+                    data={backupsList} 
+                    redirect={this.restoreBackup}/>
+                <EditorMeta 
+                    target={'modal-meta'} 
+                    virtualDom={this.virtualDom}/> 
                 {/* {this.virtualDom ? <EditorMeta target={'modal-meta'} virtualDom={this.virtualDom}/> : false} */}
 
             </>
